@@ -4,7 +4,7 @@ import unittest
 import urllib.error
 from unittest import mock
 
-from vortexo.integrations import (
+from torbox.integrations import (
     IntegrationError,
     choose_video_file,
     deduplicate_streams,
@@ -106,7 +106,7 @@ class DiscoverIdentityTests(unittest.TestCase):
             },
         ]
         with mock.patch(
-            "vortexo.integrations.json_request", side_effect=responses
+            "torbox.integrations.json_request", side_effect=responses
         ) as request:
             items = fetch_plex_watchlist("owner-token", 2)
         self.assertEqual(
@@ -289,7 +289,7 @@ class StreamNormalizationTests(unittest.TestCase):
                 return {"name": "Source", "resources": [{"name": "stream"}]}
             return {"streams": [{"url": "https://stream.example/video.mp4"}]}
 
-        with mock.patch("vortexo.integrations.json_request", side_effect=response):
+        with mock.patch("torbox.integrations.json_request", side_effect=response):
             fetch_streams(
                 "https://source.example/config/manifest.json",
                 {"type": "movie", "imdb_id": "tt0209144"},

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from vortexo.mount import MountSupervisor
+from torbox.mount import MountSupervisor
 
 
 class MountSupervisorTests(unittest.TestCase):
@@ -17,10 +17,10 @@ class MountSupervisorTests(unittest.TestCase):
         self.environment = mock.patch.dict(
             os.environ,
             {
-                "VORTEXO_DATA_DIR": os.path.join(self.temporary.name, "data"),
-                "VORTEXO_MOUNTPOINT": "/downloads/.vortexo-source",
-                "VORTEXO_HOST_MOUNT_PATH": os.path.join(
-                    self.host_root, ".vortexo-source"
+                "TORBOX_DATA_DIR": os.path.join(self.temporary.name, "data"),
+                "TORBOX_MOUNTPOINT": "/downloads/.torbox-source",
+                "TORBOX_HOST_MOUNT_PATH": os.path.join(
+                    self.host_root, ".torbox-source"
                 ),
             },
         )
@@ -33,17 +33,17 @@ class MountSupervisorTests(unittest.TestCase):
 
     def test_refuses_foreign_mount_without_detaching_it(self):
         def mounted(path):
-            return path in {"/downloads", "/downloads/.vortexo-source"}
+            return path in {"/downloads", "/downloads/.torbox-source"}
 
-        with mock.patch("vortexo.mount._is_mountpoint", side_effect=mounted):
-            with mock.patch("vortexo.mount._filesystem_type", return_value="fuse.rclone"):
-                with mock.patch("vortexo.mount.os.makedirs"):
+        with mock.patch("torbox.mount._is_mountpoint", side_effect=mounted):
+            with mock.patch("torbox.mount._filesystem_type", return_value="fuse.rclone"):
+                with mock.patch("torbox.mount.os.makedirs"):
                     with self.assertRaisesRegex(RuntimeError, "Another service already owns"):
                         self.supervisor.validate_storage()
         self.assertFalse(self.supervisor.owned)
 
     def test_missing_key_stays_unmounted(self):
-        with mock.patch("vortexo.mount._is_mountpoint", return_value=False):
+        with mock.patch("torbox.mount._is_mountpoint", return_value=False):
             self.supervisor.start()
             health = self.supervisor.health()
         self.assertFalse(health["online"])
@@ -68,13 +68,13 @@ class MountSupervisorTests(unittest.TestCase):
             detached[0] = True
             return subprocess.CompletedProcess(args, 0, "", "")
 
-        with mock.patch("vortexo.mount._is_disconnected", side_effect=disconnected):
-            with mock.patch("vortexo.mount._run", side_effect=run):
+        with mock.patch("torbox.mount._is_disconnected", side_effect=disconnected):
+            with mock.patch("torbox.mount._run", side_effect=run):
                 self.supervisor._recover_stale_owned_mount()
         self.assertFalse(os.path.exists(self.supervisor.owner_marker))
 
     def test_refuses_disconnected_mount_without_owner_marker(self):
-        with mock.patch("vortexo.mount._is_disconnected", return_value=True):
+        with mock.patch("torbox.mount._is_disconnected", return_value=True):
             with self.assertRaisesRegex(RuntimeError, "without Plex TorBox ownership"):
                 self.supervisor._recover_stale_owned_mount()
 
@@ -94,8 +94,8 @@ class MountSupervisorTests(unittest.TestCase):
         def killpg(*args):
             events.append(("killpg", args))
 
-        with mock.patch("vortexo.mount._run", side_effect=run):
-            with mock.patch("vortexo.mount.os.killpg", side_effect=killpg):
+        with mock.patch("torbox.mount._run", side_effect=run):
+            with mock.patch("torbox.mount.os.killpg", side_effect=killpg):
                 self.supervisor._stop_owned_process()
 
         self.assertEqual(

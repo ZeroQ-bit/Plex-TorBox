@@ -19,27 +19,27 @@ RUN apk add --no-cache \
       su-exec \
       tini \
       util-linux \
-    && addgroup -g 1000 -S vortexo \
-    && adduser -u 1000 -S -D -H -G vortexo vortexo
+    && addgroup -g 1000 -S torbox \
+    && adduser -u 1000 -S -D -H -G torbox torbox
 
-WORKDIR /opt/vortexo
-COPY vortexo ./vortexo
-COPY web/plex-vortexo.js web/plex-vortexo.css ./web/
+WORKDIR /opt/torbox
+COPY torbox ./torbox
+COPY web/plex-torbox.js web/plex-torbox.css ./web/
 COPY --from=web-assets /build/node_modules/hls.js/dist/hls.min.js ./web/hls.min.js
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY entrypoint.sh /usr/local/bin/plex-vortexo
+COPY entrypoint.sh /usr/local/bin/plex-torbox
 
-RUN chmod 0755 /usr/local/bin/plex-vortexo \
+RUN chmod 0755 /usr/local/bin/plex-torbox \
     && mkdir -p \
-      /data/vortexo \
+      /data/torbox \
       /tmp/nginx/client \
       /tmp/nginx/fastcgi \
       /tmp/nginx/proxy \
       /tmp/nginx/scgi \
       /tmp/nginx/uwsgi \
-    && chown -R vortexo:vortexo /data/vortexo /tmp/nginx
+    && chown -R torbox:torbox /data/torbox /tmp/nginx
 
-ENV PYTHONPATH=/opt/vortexo \
-    VORTEXO_DATA_DIR=/data/vortexo
+ENV PYTHONPATH=/opt/torbox \
+    TORBOX_DATA_DIR=/data/torbox
 
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/plex-vortexo"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/plex-torbox"]

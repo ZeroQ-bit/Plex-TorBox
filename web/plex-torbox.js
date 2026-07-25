@@ -39,7 +39,7 @@
     if (!token || state.authenticated || state.authenticating) return;
     state.authenticating = true;
     try {
-      const response = await nativeFetch("/vortexo/api/session", {
+      const response = await nativeFetch("/torbox/api/session", {
         method: "PUT",
         credentials: "same-origin",
         headers: {"Content-Type": "application/json"},
@@ -128,14 +128,14 @@
   function createTorBoxCard(discoverID) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "vortexo-torbox-card";
-    card.dataset.vortexoTorbox = discoverID;
+    card.className = "torbox-card";
+    card.dataset.torboxCard = discoverID;
     card.setAttribute("aria-label", "Watch with TorBox");
     card.innerHTML = `
-      <span class="vortexo-torbox-mark" aria-hidden="true">
+      <span class="torbox-mark" aria-hidden="true">
         <svg viewBox="0 0 48 48"><path d="M7 12.5 24 4l17 8.5v23L24 44 7 35.5v-23Zm8.5 5.3v7.1l5 2.5v8.3l3.5 1.8 3.5-1.8v-8.3l5-2.5v-7.1L24 22l-8.5-4.2Z"/></svg>
       </span>
-      <span class="vortexo-torbox-copy">
+      <span class="torbox-copy">
         <strong>TorBox</strong>
         <small>Available streams</small>
       </span>`;
@@ -145,15 +145,15 @@
 
   function injectCard() {
     const discoverID = discoverIDFromLocation();
-    document.querySelectorAll("[data-vortexo-torbox]").forEach(card => {
-      if (!state.authenticated || !discoverID || card.dataset.vortexoTorbox !== discoverID) {
+    document.querySelectorAll("[data-torbox-card]").forEach(card => {
+      if (!state.authenticated || !discoverID || card.dataset.torboxCard !== discoverID) {
         card.remove();
       }
     });
     if (
       !state.authenticated
       || !discoverID
-      || document.querySelector(`[data-vortexo-torbox="${CSS.escape(discoverID)}"]`)
+      || document.querySelector(`[data-torbox-card="${CSS.escape(discoverID)}"]`)
     ) return;
     const heading = exactTextElement("Watch from these locations");
     if (!heading) return;
@@ -177,25 +177,25 @@
   function modalShell(title) {
     closeModal();
     const overlay = document.createElement("div");
-    overlay.className = "vortexo-overlay";
+    overlay.className = "torbox-overlay";
     overlay.innerHTML = `
-      <section class="vortexo-modal" role="dialog" aria-modal="true" aria-label="${escapeHTML(title)}">
+      <section class="torbox-modal" role="dialog" aria-modal="true" aria-label="${escapeHTML(title)}">
         <header>
           <div>
-            <span class="vortexo-eyebrow">PLEX TORBOX</span>
+            <span class="torbox-eyebrow">PLEX TORBOX</span>
             <h2>${escapeHTML(title)}</h2>
           </div>
-          <button type="button" class="vortexo-icon-button" data-vortexo-close aria-label="Close">×</button>
+          <button type="button" class="torbox-icon-button" data-torbox-close aria-label="Close">×</button>
         </header>
-        <div class="vortexo-modal-body"></div>
+        <div class="torbox-modal-body"></div>
       </section>`;
-    overlay.querySelector("[data-vortexo-close]").addEventListener("click", closeModal);
+    overlay.querySelector("[data-torbox-close]").addEventListener("click", closeModal);
     overlay.addEventListener("mousedown", event => {
       if (event.target === overlay) closeModal();
     });
     document.body.appendChild(overlay);
     state.modal = overlay;
-    return overlay.querySelector(".vortexo-modal-body");
+    return overlay.querySelector(".torbox-modal-body");
   }
 
   function closeModal() {
@@ -210,7 +210,7 @@
       const video = state.player.querySelector("video");
       if (video) {
         try { video.pause(); } catch (_) {}
-        if (video._vortexoHls) video._vortexoHls.destroy();
+        if (video._torboxHls) video._torboxHls.destroy();
       }
       state.player.remove();
     }
@@ -234,12 +234,12 @@
       if (!state.authenticated) {
         await waitForOwnerSession();
       }
-      const status = await api("/vortexo/api/status");
+      const status = await api("/torbox/api/status");
       if (!status.configured) {
         renderSettings(body, status);
         return;
       }
-      const media = await api(`/vortexo/api/discover/${encodeURIComponent(discoverID)}`);
+      const media = await api(`/torbox/api/discover/${encodeURIComponent(discoverID)}`);
       state.currentMedia = media;
       if (media.type === "show") {
         await renderEpisodePicker(body, media);
@@ -260,12 +260,12 @@
   }
 
   function loading(label) {
-    return `<div class="vortexo-loading"><span></span><p>${escapeHTML(label)}</p></div>`;
+    return `<div class="torbox-loading"><span></span><p>${escapeHTML(label)}</p></div>`;
   }
 
   function renderError(container, message, help = "") {
     container.innerHTML = `
-      <div class="vortexo-empty vortexo-error">
+      <div class="torbox-empty torbox-error">
         <strong>${escapeHTML(message)}</strong>
         ${help ? `<p>${escapeHTML(help)}</p>` : ""}
       </div>`;
@@ -279,67 +279,67 @@
     const enabled = Boolean(status.plex_watchlist_enabled ?? watchlist.enabled ?? false);
     const cachedOnly = Boolean(status.plex_watchlist_cached_only ?? watchlist.cached_only ?? true);
     container.innerHTML = `
-      <div class="vortexo-setup">
-        <div class="vortexo-callout">
+      <div class="torbox-setup">
+        <div class="torbox-callout">
           <strong>Connect TorBox to Plex</strong>
           <p>The key and source URL stay on this Umbrel. They are never stored in this browser.</p>
         </div>
         <label>TorBox API key
-          <input type="password" autocomplete="off" data-vortexo-key placeholder="${status.torbox_configured ? "Saved — leave blank to keep it" : "Paste API key"}">
+          <input type="password" autocomplete="off" data-torbox-key placeholder="${status.torbox_configured ? "Saved — leave blank to keep it" : "Paste API key"}">
         </label>
-        <label>Vortexo Sources manifest URL
-          <textarea rows="3" data-vortexo-manifest placeholder="https://…/manifest.json"></textarea>
+        <label>TorBox Sources manifest URL
+          <textarea rows="3" data-torbox-manifest placeholder="https://…/manifest.json"></textarea>
           <small>Use an AIOStreams or Torrentio-compatible manifest that exposes the stream resource.</small>
         </label>
         <label>TorBox WebDAV URL
-          <input type="url" data-vortexo-webdav value="https://webdav.torbox.app">
+          <input type="url" data-torbox-webdav value="https://webdav.torbox.app">
         </label>
-        <div class="vortexo-callout">
+        <div class="torbox-callout">
           <strong>Use TorBox from every Plex client</strong>
-          <p>Add a title to the normal Plex Watchlist. Vortexo selects a cached release, adds it to the Plex library, and Plex clients see it as regular media. TV shows safely start with the first regular episode.</p>
+          <p>Add a title to the normal Plex Watchlist. TorBox selects a cached release, adds it to the Plex library, and Plex clients see it as regular media. TV shows safely start with the first regular episode.</p>
         </div>
-        <label class="vortexo-check">
-          <input type="checkbox" data-vortexo-watchlist-enabled ${enabled ? "checked" : ""}>
+        <label class="torbox-check">
+          <input type="checkbox" data-torbox-watchlist-enabled ${enabled ? "checked" : ""}>
           <span>Automatically import my Plex Watchlist</span>
         </label>
-        <div class="vortexo-settings-grid">
+        <div class="torbox-settings-grid">
           <label>Check Watchlist
-            <select data-vortexo-watchlist-interval>
+            <select data-torbox-watchlist-interval>
               ${[1, 5, 15, 30, 60].map(value => `<option value="${value}" ${pollMinutes === value ? "selected" : ""}>Every ${value} minute${value === 1 ? "" : "s"}</option>`).join("")}
             </select>
           </label>
           <label>Automatic quality
-            <select data-vortexo-watchlist-profile>
+            <select data-torbox-watchlist-profile>
               <option value="best" ${profile === "best" ? "selected" : ""}>Best available</option>
               <option value="4k" ${profile === "4k" ? "selected" : ""}>Prefer 4K</option>
               <option value="1080p" ${profile === "1080p" ? "selected" : ""}>Prefer 1080p</option>
             </select>
           </label>
           <label>Maximum release size (GB)
-            <input type="number" min="0" max="1000" step="1" data-vortexo-watchlist-size value="${Number(status.plex_watchlist_max_size_gb ?? 80)}">
+            <input type="number" min="0" max="1000" step="1" data-torbox-watchlist-size value="${Number(status.plex_watchlist_max_size_gb ?? 80)}">
           </label>
           <label>Maximum Watchlist items
-            <input type="number" min="1" max="1000" step="1" data-vortexo-watchlist-limit value="${Number(status.plex_watchlist_max_items ?? 100)}">
+            <input type="number" min="1" max="1000" step="1" data-torbox-watchlist-limit value="${Number(status.plex_watchlist_max_items ?? 100)}">
           </label>
         </div>
-        <label class="vortexo-check">
-          <input type="checkbox" data-vortexo-watchlist-cached ${cachedOnly ? "checked" : ""}>
+        <label class="torbox-check">
+          <input type="checkbox" data-torbox-watchlist-cached ${cachedOnly ? "checked" : ""}>
           <span>Cached TorBox releases only</span>
         </label>
-        <div class="vortexo-actions">
-          <button class="vortexo-secondary" data-vortexo-sync>Sync Watchlist now</button>
-          <button class="vortexo-primary" data-vortexo-save>Save and connect</button>
+        <div class="torbox-actions">
+          <button class="torbox-secondary" data-torbox-sync>Sync Watchlist now</button>
+          <button class="torbox-primary" data-torbox-save>Save and connect</button>
         </div>
-        <p class="vortexo-form-status" role="status">${escapeHTML(sync.detail || "")}</p>
+        <p class="torbox-form-status" role="status">${escapeHTML(sync.detail || "")}</p>
       </div>`;
-    const save = container.querySelector("[data-vortexo-save]");
-    const syncNow = container.querySelector("[data-vortexo-sync]");
+    const save = container.querySelector("[data-torbox-save]");
+    const syncNow = container.querySelector("[data-torbox-sync]");
     syncNow.addEventListener("click", async () => {
-      const statusLine = container.querySelector(".vortexo-form-status");
+      const statusLine = container.querySelector(".torbox-form-status");
       syncNow.disabled = true;
       statusLine.textContent = "Reading Plex Watchlist…";
       try {
-        const result = await api("/vortexo/api/watchlist/sync", {
+        const result = await api("/torbox/api/watchlist/sync", {
           method: "POST",
           body: "{}",
         });
@@ -351,25 +351,25 @@
       }
     });
     save.addEventListener("click", async () => {
-      const statusLine = container.querySelector(".vortexo-form-status");
-      const key = container.querySelector("[data-vortexo-key]").value.trim();
-      const manifests = container.querySelector("[data-vortexo-manifest]").value
+      const statusLine = container.querySelector(".torbox-form-status");
+      const key = container.querySelector("[data-torbox-key]").value.trim();
+      const manifests = container.querySelector("[data-torbox-manifest]").value
         .split("\n").map(value => value.trim()).filter(Boolean);
       save.disabled = true;
       statusLine.textContent = "Validating TorBox…";
       try {
-        await api("/vortexo/api/settings", {
+        await api("/torbox/api/settings", {
           method: "PUT",
           body: JSON.stringify({
             ...(key ? {torbox_api_key: key} : {}),
             stream_manifest_urls: manifests,
-            webdav_url: container.querySelector("[data-vortexo-webdav]").value.trim(),
-            plex_watchlist_enabled: container.querySelector("[data-vortexo-watchlist-enabled]").checked,
-            plex_watchlist_poll_minutes: Number(container.querySelector("[data-vortexo-watchlist-interval]").value),
-            plex_watchlist_profile: container.querySelector("[data-vortexo-watchlist-profile]").value,
-            plex_watchlist_max_size_gb: Number(container.querySelector("[data-vortexo-watchlist-size]").value),
-            plex_watchlist_max_items: Number(container.querySelector("[data-vortexo-watchlist-limit]").value),
-            plex_watchlist_cached_only: container.querySelector("[data-vortexo-watchlist-cached]").checked,
+            webdav_url: container.querySelector("[data-torbox-webdav]").value.trim(),
+            plex_watchlist_enabled: container.querySelector("[data-torbox-watchlist-enabled]").checked,
+            plex_watchlist_poll_minutes: Number(container.querySelector("[data-torbox-watchlist-interval]").value),
+            plex_watchlist_profile: container.querySelector("[data-torbox-watchlist-profile]").value,
+            plex_watchlist_max_size_gb: Number(container.querySelector("[data-torbox-watchlist-size]").value),
+            plex_watchlist_max_items: Number(container.querySelector("[data-torbox-watchlist-limit]").value),
+            plex_watchlist_cached_only: container.querySelector("[data-torbox-watchlist-cached]").checked,
             plex_watchlist_show_mode: "first_episode",
           }),
         });
@@ -386,7 +386,7 @@
   async function renderEpisodePicker(container, media) {
     container.innerHTML = loading("Loading seasons and episodes…");
     try {
-      const response = await api(`/vortexo/api/discover/${encodeURIComponent(media.discover_id)}/episodes`);
+      const response = await api(`/torbox/api/discover/${encodeURIComponent(media.discover_id)}/episodes`);
       const episodes = response.episodes || [];
       if (!episodes.length) {
         renderError(container, "No episodes were returned by Plex Discover");
@@ -394,16 +394,16 @@
       }
       const seasons = [...new Set(episodes.map(item => Number(item.season || 0)))].filter(Boolean);
       container.innerHTML = `
-        <div class="vortexo-media-heading">
+        <div class="torbox-media-heading">
           <div><span>TV SERIES</span><h3>${escapeHTML(media.title)}</h3></div>
         </div>
-        <div class="vortexo-picker">
-          <label>Season<select data-vortexo-season></select></label>
-          <label>Episode<select data-vortexo-episode></select></label>
-          <button class="vortexo-primary" data-vortexo-find>Find streams</button>
+        <div class="torbox-picker">
+          <label>Season<select data-torbox-season></select></label>
+          <label>Episode<select data-torbox-episode></select></label>
+          <button class="torbox-primary" data-torbox-find>Find streams</button>
         </div>`;
-      const seasonSelect = container.querySelector("[data-vortexo-season]");
-      const episodeSelect = container.querySelector("[data-vortexo-episode]");
+      const seasonSelect = container.querySelector("[data-torbox-season]");
+      const episodeSelect = container.querySelector("[data-torbox-episode]");
       seasons.forEach(season => {
         seasonSelect.add(new Option(`Season ${season}`, String(season)));
       });
@@ -415,15 +415,15 @@
             `E${String(item.episode).padStart(2, "0")} · ${item.title}`,
             String(item.episode)
           );
-          option._vortexoMedia = item;
+          option._torboxMedia = item;
           episodeSelect.add(option);
         });
       };
       seasonSelect.addEventListener("change", populateEpisodes);
       populateEpisodes();
-      container.querySelector("[data-vortexo-find]").addEventListener("click", async () => {
+      container.querySelector("[data-torbox-find]").addEventListener("click", async () => {
         const selected = episodeSelect.options[episodeSelect.selectedIndex];
-        state.currentEpisode = selected?._vortexoMedia || null;
+        state.currentEpisode = selected?._torboxMedia || null;
         await searchAndRender(
           container,
           state.currentEpisode || media,
@@ -437,9 +437,9 @@
   }
 
   async function searchAndRender(container, media, season, episode) {
-    container.innerHTML = loading("Searching Vortexo Sources and checking TorBox…");
+    container.innerHTML = loading("Searching TorBox Sources and checking TorBox…");
     try {
-      const response = await api("/vortexo/api/streams", {
+      const response = await api("/torbox/api/streams", {
         method: "POST",
         body: JSON.stringify({
           discover_id: state.currentMedia?.discover_id || media.discover_id,
@@ -461,29 +461,29 @@
       ? `Season ${season} · Episode ${episode}`
       : [media.year, media.type === "movie" ? "Movie" : "Episode"].filter(Boolean).join(" · ");
     container.innerHTML = `
-      <div class="vortexo-media-heading">
+      <div class="torbox-media-heading">
         <div><span>${escapeHTML(subtitle)}</span><h3>${escapeHTML(media.parent_title || media.title)}</h3></div>
-        <button class="vortexo-quiet" data-vortexo-settings>Settings</button>
+        <button class="torbox-quiet" data-torbox-settings>Settings</button>
       </div>
-      ${streams.length ? `<div class="vortexo-stream-list"></div>` : `
-        <div class="vortexo-empty"><strong>No TorBox streams found</strong><p>Try another source manifest or episode.</p></div>`}
-      ${warnings.length ? `<details class="vortexo-warnings"><summary>Source warnings</summary><p>${warnings.map(escapeHTML).join("<br>")}</p></details>` : ""}`;
-    container.querySelector("[data-vortexo-settings]").addEventListener("click", async () => {
-      const settings = await api("/vortexo/api/settings");
+      ${streams.length ? `<div class="torbox-stream-list"></div>` : `
+        <div class="torbox-empty"><strong>No TorBox streams found</strong><p>Try another source manifest or episode.</p></div>`}
+      ${warnings.length ? `<details class="torbox-warnings"><summary>Source warnings</summary><p>${warnings.map(escapeHTML).join("<br>")}</p></details>` : ""}`;
+    container.querySelector("[data-torbox-settings]").addEventListener("click", async () => {
+      const settings = await api("/torbox/api/settings");
       renderSettings(container, settings);
-      const textarea = container.querySelector("[data-vortexo-manifest]");
+      const textarea = container.querySelector("[data-torbox-manifest]");
       if (textarea) textarea.value = (settings.stream_manifest_urls || []).join("\n");
-      const webdav = container.querySelector("[data-vortexo-webdav]");
+      const webdav = container.querySelector("[data-torbox-webdav]");
       if (webdav) webdav.value = settings.webdav_url || "https://webdav.torbox.app";
     });
-    const list = container.querySelector(".vortexo-stream-list");
+    const list = container.querySelector(".torbox-stream-list");
     if (!list) return;
     streams.forEach(stream => {
       const row = document.createElement("article");
-      row.className = "vortexo-stream";
+      row.className = "torbox-stream";
       row.innerHTML = `
-        <div class="vortexo-stream-main">
-          <div class="vortexo-badges">
+        <div class="torbox-stream-main">
+          <div class="torbox-badges">
             ${stream.cached ? '<span class="is-cached">CACHED</span>' : '<span>TORBOX</span>'}
             ${stream.quality ? `<span>${escapeHTML(stream.quality)}</span>` : ""}
             ${stream.dynamic_range ? `<span>${escapeHTML(stream.dynamic_range)}</span>` : ""}
@@ -494,11 +494,11 @@
             stream.seeders ? `${stream.seeders} seeders` : "", stream.source
           ].filter(Boolean).join(" · "))}</small>
         </div>
-        <div class="vortexo-stream-actions">
-          <button class="vortexo-primary" data-play ${stream.can_play_now ? "" : "disabled"}>Play Now</button>
-          <button class="vortexo-secondary" data-add ${stream.can_add ? "" : "disabled"}>Add to Plex</button>
+        <div class="torbox-stream-actions">
+          <button class="torbox-primary" data-play ${stream.can_play_now ? "" : "disabled"}>Play Now</button>
+          <button class="torbox-secondary" data-add ${stream.can_add ? "" : "disabled"}>Add to Plex</button>
         </div>
-        <div class="vortexo-job-status" role="status"></div>`;
+        <div class="torbox-job-status" role="status"></div>`;
       row.querySelector("[data-play]").addEventListener("click", () => playStream(stream, media, season, episode));
       row.querySelector("[data-add]").addEventListener("click", () => addToPlex(row, stream, media, season, episode));
       list.appendChild(row);
@@ -509,7 +509,7 @@
     if (window.Hls) return window.Hls;
     await new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = "/vortexo/assets/hls.min.js";
+      script.src = "/torbox/assets/hls.min.js";
       script.onload = resolve;
       script.onerror = reject;
       document.head.appendChild(script);
@@ -519,7 +519,7 @@
 
   async function playStream(stream, media, season, episode) {
     try {
-      const response = await api("/vortexo/api/play", {
+      const response = await api("/torbox/api/play", {
         method: "POST",
         body: JSON.stringify({
           stream_id: stream.id,
@@ -530,11 +530,11 @@
       });
       closePlayer();
       const overlay = document.createElement("div");
-      overlay.className = "vortexo-player-overlay";
+      overlay.className = "torbox-player-overlay";
       overlay.innerHTML = `
-        <div class="vortexo-player-top">
+        <div class="torbox-player-top">
           <div><span>PLAYING FROM TORBOX</span><strong>${escapeHTML(stream.file_name || media.title)}</strong></div>
-          <button class="vortexo-icon-button" data-player-close aria-label="Close player">×</button>
+          <button class="torbox-icon-button" data-player-close aria-label="Close player">×</button>
         </div>
         <video controls autoplay playsinline></video>`;
       overlay.querySelector("[data-player-close]").addEventListener("click", closePlayer);
@@ -546,7 +546,7 @@
         const Hls = await loadHlsLibrary();
         if (!Hls.isSupported()) throw new Error("This browser cannot play the prepared HLS stream");
         const hls = new Hls({enableWorker: true, lowLatencyMode: false});
-        video._vortexoHls = hls;
+        video._torboxHls = hls;
         hls.loadSource(response.play_url);
         hls.attachMedia(video);
       } else {
@@ -567,7 +567,7 @@
       }, {once: true});
       const report = () => {
         if (!Number.isFinite(video.currentTime) || !Number.isFinite(video.duration)) return;
-        api("/vortexo/api/progress", {
+        api("/torbox/api/progress", {
           method: "POST",
           body: JSON.stringify({
             discover_id: media.playback_discover_id || media.discover_id,
@@ -587,12 +587,12 @@
   }
 
   async function addToPlex(row, stream, media, season, episode) {
-    const status = row.querySelector(".vortexo-job-status");
+    const status = row.querySelector(".torbox-job-status");
     const button = row.querySelector("[data-add]");
     button.disabled = true;
     status.textContent = "Sending release to TorBox…";
     try {
-      const response = await api("/vortexo/api/library-jobs", {
+      const response = await api("/torbox/api/library-jobs", {
         method: "POST",
         body: JSON.stringify({
           stream_id: stream.id,
@@ -612,7 +612,7 @@
   async function pollJob(jobID, status) {
     const terminal = new Set(["plex_confirmed", "already_in_plex", "failed"]);
     while (true) {
-      const response = await api(`/vortexo/api/library-jobs/${jobID}`);
+      const response = await api(`/torbox/api/library-jobs/${jobID}`);
       const job = response.job;
       status.textContent = job.detail;
       status.dataset.state = job.status;

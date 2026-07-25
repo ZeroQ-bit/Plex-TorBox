@@ -14,12 +14,12 @@ libraries, so it remains available to stock Plex clients.
 
 ## Roles
 
-- `VORTEXO_ROLE=gateway` starts the owner-authenticated API on loopback and an
+- `TORBOX_ROLE=gateway` starts the owner-authenticated API on loopback and an
   unprivileged Nginx gateway on port `32500`. Nginx proxies Plex on `32400` and
   injects the local JavaScript and CSS only into `/web/index.html`.
-- `VORTEXO_ROLE=mount` starts the privileged rclone supervisor on loopback port
+- `TORBOX_ROLE=mount` starts the privileged rclone supervisor on loopback port
   `32501`. The gateway API uses loopback port `32502`. The supervisor mounts
-  TorBox WebDAV read-only at `/downloads/.vortexo-source` and refuses any mount
+  TorBox WebDAV read-only at `/downloads/.torbox-source` and refuses any mount
   it did not create.
 
 Settings, signed playback URLs, resume progress, and library jobs live in the
@@ -28,21 +28,21 @@ Plex token, magnet, info hash, manifest request headers, or raw signed URL.
 
 ## API
 
-The owner session is established by `PUT /vortexo/api/session`. The gateway
+The owner session is established by `PUT /torbox/api/session`. The gateway
 accepts the Plex Web token only when Plex confirms it belongs to the same
 account as the owner token in `Preferences.xml`, then sets an HTTP-only cookie.
 
-- `GET /vortexo/api/status`
-- `GET|PUT /vortexo/api/settings`
-- `GET /vortexo/api/watchlist`
-- `POST /vortexo/api/watchlist/sync`
-- `GET /vortexo/api/discover/{id}`
-- `GET /vortexo/api/discover/{id}/episodes`
-- `POST /vortexo/api/streams`
-- `POST /vortexo/api/play`
-- `POST /vortexo/api/progress`
-- `POST /vortexo/api/library-jobs`
-- `GET /vortexo/api/library-jobs/{id}`
+- `GET /torbox/api/status`
+- `GET|PUT /torbox/api/settings`
+- `GET /torbox/api/watchlist`
+- `POST /torbox/api/watchlist/sync`
+- `GET /torbox/api/discover/{id}`
+- `GET /torbox/api/discover/{id}/episodes`
+- `POST /torbox/api/streams`
+- `POST /torbox/api/play`
+- `POST /torbox/api/progress`
+- `POST /torbox/api/library-jobs`
+- `GET /torbox/api/library-jobs/{id}`
 
 ## Native Plex clients
 
@@ -58,12 +58,12 @@ the manual Add to Plex action. Completed media is ordinary Plex library media,
 so it appears in native Plex clients without modifying those clients. Removing
 a title from the Plex Watchlist never deletes an existing file or Plex item.
 
-## Compatibility
+## Migration status
 
-The `/vortexo/api` routes, `VORTEXO_*` environment variables, persistent data
-paths, and existing mount ownership marker intentionally keep their original
-names. Renaming them would break upgrades from Plex (Vortexo) installations.
-They are implementation details, not the current project name.
+The project now consistently uses `/torbox/api`, `TORBOX_*`, `/data/torbox`,
+`/downloads/torbox`, and `.torbox-source`. Existing pre-rename installations
+must not deploy this image directly. Their saved settings, mount, and library
+links require an explicit migration release from the Umbrel Store.
 
 ## Umbrel
 
@@ -79,8 +79,8 @@ Run:
 
 ```sh
 python3 -m unittest discover -s tests -v
-python3 -m compileall -q vortexo
-node --check web/plex-vortexo.js
+python3 -m compileall -q torbox
+node --check web/plex-torbox.js
 sh -n entrypoint.sh
 ```
 
@@ -91,7 +91,7 @@ published `main` tag to an immutable digest before a store release.
 ## Live handoff
 
 Do not overlap this mount with Orbit. Stop Orbit's mount role first, prove
-`.vortexo-source` is no longer a mountpoint and is empty, and only then start
+`.torbox-source` is no longer a mountpoint and is empty, and only then start
 Plex TorBox. The pre-start hook and mount supervisor repeat these checks and
 will not detach a foreign mount.
 

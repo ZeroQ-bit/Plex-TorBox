@@ -3,7 +3,7 @@ import stat
 import tempfile
 import unittest
 
-from vortexo.store import Store
+from torbox.store import Store
 
 
 class StoreTests(unittest.TestCase):

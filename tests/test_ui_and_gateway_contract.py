@@ -8,16 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 class UIContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.javascript = (ROOT / "web" / "plex-vortexo.js").read_text()
+        cls.javascript = (ROOT / "web" / "plex-torbox.js").read_text()
         cls.nginx = (ROOT / "nginx.conf").read_text()
         cls.entrypoint = (ROOT / "entrypoint.sh").read_text()
-        cls.service = (ROOT / "vortexo" / "service.py").read_text()
-        cls.mount = (ROOT / "vortexo" / "mount.py").read_text()
+        cls.service = (ROOT / "torbox" / "service.py").read_text()
+        cls.mount = (ROOT / "torbox" / "mount.py").read_text()
 
     def test_discover_card_targets_the_existing_english_provider_row(self):
         self.assertIn('"Watch from these locations"', self.javascript)
         self.assertIn("row.insertBefore(card, moreCard || row.firstChild)", self.javascript)
-        self.assertIn("card.dataset.vortexoTorbox", self.javascript)
+        self.assertIn("card.dataset.torboxCard", self.javascript)
         self.assertIn("!state.authenticated", self.javascript)
         self.assertIn("MutationObserver", self.javascript)
 
@@ -27,11 +27,11 @@ class UIContractTests(unittest.TestCase):
             "Season<select",
             "Play Now",
             "Add to Plex",
-            "vortexo-player-overlay",
+            "torbox-player-overlay",
             'event.key !== "Escape"',
             'window.addEventListener("popstate"',
             "Automatically import my Plex Watchlist",
-            "/vortexo/api/watchlist/sync",
+            "/torbox/api/watchlist/sync",
         ):
             self.assertIn(expected, self.javascript)
 
@@ -39,7 +39,7 @@ class UIContractTests(unittest.TestCase):
         self.assertNotIn("localStorage", self.javascript)
         self.assertNotIn("sessionStorage", self.javascript)
         self.assertNotIn("console.log", self.javascript)
-        self.assertIn('HttpOnly; SameSite=Strict', (ROOT / "vortexo" / "service.py").read_text())
+        self.assertIn('HttpOnly; SameSite=Strict', (ROOT / "torbox" / "service.py").read_text())
 
     def test_gateway_injects_assets_only_into_plex_web_and_proxies_everything_else(self):
         self.assertIn("location = /web/index.html", self.nginx)
@@ -52,8 +52,8 @@ class UIContractTests(unittest.TestCase):
     def test_companion_ports_do_not_overlap_plex_internal_ports(self):
         self.assertIn("127.0.0.1:32502", self.nginx)
         self.assertIn('"http://127.0.0.1:32501"', self.service)
-        self.assertIn('"VORTEXO_API_PORT", "32502"', self.service)
-        self.assertIn('"VORTEXO_MOUNT_PORT", "32501"', self.mount)
+        self.assertIn('"TORBOX_API_PORT", "32502"', self.service)
+        self.assertIn('"TORBOX_MOUNT_PORT", "32501"', self.mount)
         for reserved_port in ("32401", "32402", "32403"):
             self.assertNotIn(reserved_port, self.nginx)
             self.assertNotIn(reserved_port, self.service)
@@ -78,6 +78,20 @@ class UIContractTests(unittest.TestCase):
             compose.count("ghcr.io/zeroq-bit/plex-torbox:main"),
             2,
         )
+
+    def test_project_uses_only_torbox_branding(self):
+        forbidden = "vor" + "texo"
+        for path in ROOT.rglob("*"):
+            if any(part in {".git", "__pycache__"} for part in path.parts):
+                continue
+            self.assertNotIn(forbidden, path.name.lower())
+            if not path.is_file():
+                continue
+            try:
+                contents = path.read_text()
+            except UnicodeDecodeError:
+                continue
+            self.assertNotIn(forbidden, contents.lower(), str(path))
 
 
 if __name__ == "__main__":
