@@ -1,0 +1,60 @@
+manifestVersion: 1.1
+id: zeroq-plex
+category: media
+name: Plex (TorBox)
+version: "1.43.3.10828.17"
+tagline: Plex Discover with private TorBox streaming
+icon: https://avatars.githubusercontent.com/u/11744877?v=4
+description: >-
+  Stream movies and TV shows, plus 300+ channels of live TV, instantly, without a subscription. Watch live TV and movies anywhere, from any device, with Plex.
+
+
+  Plex uses a server to house your media library and player apps to playback the media. Add, access, and share all the entertainment that matters to you, on almost any device.
+
+
+  This unofficial ZeroQ package adds a private TorBox gateway to Plex Web. Open
+  Discover from the Umbrel tile to search configured stream sources, play cached TorBox
+  releases, or add a chosen version to Plex without changing native Plex clients.
+  Optional Plex Watchlist automation lets native Plex clients request titles:
+  Plex TorBox selects a cached release and adds it as ordinary Plex library media.
+
+  Plex (TorBox) owns its TorBox WebDAV mount and does not depend on Orbit.
+  TorBox credentials stay server-side and only the authenticated Plex owner can
+  configure or use Vortexo actions.
+
+  Set Plex libraries to:
+  - `/downloads/vortexo/Movies`
+  - `/downloads/vortexo/TV`
+
+
+  ⚠️ Because Plex still runs in host network mode on port 32400, stop the stock Plex app before installing this package. This package does not import stock Plex data automatically; migrate that data separately before switching, and keep the stopped stock app as a rollback until the new package is verified.
+developer: ZeroQ
+website: https://github.com/ZeroQ-bit/Plex-TorBox
+dependencies: []
+repo: https://github.com/ZeroQ-bit/Plex-TorBox
+support: https://github.com/ZeroQ-bit/Plex-TorBox/issues
+port: 32500
+gallery:
+  - 1.jpg
+  - 2.jpg
+  - 3.jpg
+path: /web/index.html
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+permissions:
+  - GPU
+releaseNotes: >-
+  Fixes SkyNet returning to an outdated or disconnected state after Watchlist
+  automation runs.
+
+
+  All Plex owner-token requests now carry authentication only. Vortexo no
+  longer sends its companion product, version, platform, or client identity to
+  Plex.tv, Plex Discover, or the local Plex server.
+
+
+  TorBox Watchlist automation, Add to Plex, the owned WebDAV mount, existing
+  library links, and stock Plex access on port 32400 are preserved.
+submitter: ZeroQ
+submission: https://github.com/ZeroQ-bit/Umbrel-Store
