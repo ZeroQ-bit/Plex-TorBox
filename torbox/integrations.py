@@ -31,7 +31,7 @@ def json_request(
     body = None
     request_headers = {
         "Accept": "application/json",
-        "User-Agent": "Plex-Vortexo/0.1",
+        "User-Agent": "Plex-TorBox/0.1",
         **(headers or {}),
     }
     if payload is not None:
@@ -322,7 +322,7 @@ def fetch_streams(manifest_url: str, media: dict, season: int = 0, episode: int 
         rows = payload.get("streams") if isinstance(payload, dict) else None
         if isinstance(rows, list):
             return [
-                normalize_stream(row, manifest.get("name") or "Vortexo Sources", season, episode)
+                normalize_stream(row, manifest.get("name") or "TorBox Sources", season, episode)
                 for row in rows
                 if isinstance(row, dict)
             ]
@@ -567,7 +567,7 @@ class TorBoxClient:
     @property
     def headers(self) -> dict:
         if not self.api_key:
-            raise IntegrationError("Add a TorBox API key in Vortexo settings")
+            raise IntegrationError("Add a TorBox API key in TorBox settings")
         return {"Authorization": f"Bearer {self.api_key}"}
 
     def health(self) -> dict:
@@ -595,7 +595,7 @@ class TorBoxClient:
     def create_torrent(self, magnet: str, *, cached_only: bool = False) -> dict:
         if not magnet:
             raise IntegrationError("The selected stream cannot be added to TorBox")
-        boundary = "----Vortexo" + uuid.uuid4().hex
+        boundary = "----TorBox" + uuid.uuid4().hex
         fields = {
             "magnet": magnet,
             "seed": "3",
@@ -616,7 +616,7 @@ class TorBoxClient:
                 **self.headers,
                 "Accept": "application/json",
                 "Content-Type": f"multipart/form-data; boundary={boundary}",
-                "User-Agent": "Plex-Vortexo/0.1",
+                "User-Agent": "Plex-TorBox/0.1",
             },
         )
         try:

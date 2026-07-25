@@ -1,35 +1,35 @@
 #!/bin/sh
 set -eu
 
-role="${VORTEXO_ROLE:-gateway}"
+role="${TORBOX_ROLE:-gateway}"
 
 case "${role}" in
   gateway)
     mkdir -p \
-      /data/vortexo \
+      /data/torbox \
       /tmp/nginx/client \
       /tmp/nginx/fastcgi \
       /tmp/nginx/proxy \
       /tmp/nginx/scgi \
       /tmp/nginx/uwsgi
     touch /tmp/nginx/error.log
-    chown -R vortexo:vortexo /data/vortexo /tmp/nginx
-    su-exec vortexo tail -n 0 -f /tmp/nginx/error.log >&2 &
+    chown -R torbox:torbox /data/torbox /tmp/nginx
+    su-exec torbox tail -n 0 -f /tmp/nginx/error.log >&2 &
     nginx_log_pid="$!"
-    su-exec vortexo python3 -m vortexo.service &
+    su-exec torbox python3 -m torbox.service &
     api_pid="$!"
     cleanup() {
       kill "${api_pid}" "${nginx_log_pid}" 2>/dev/null || true
       wait "${api_pid}" "${nginx_log_pid}" 2>/dev/null || true
     }
     trap cleanup EXIT INT TERM
-    su-exec vortexo nginx -e /tmp/nginx/error.log -g "daemon off;"
+    su-exec torbox nginx -e /tmp/nginx/error.log -g "daemon off;"
     ;;
   mount)
-    exec python3 -m vortexo.mount
+    exec python3 -m torbox.mount
     ;;
   *)
-    echo "Unsupported VORTEXO_ROLE: ${role}" >&2
+    echo "Unsupported TORBOX_ROLE: ${role}" >&2
     exit 64
     ;;
 esac

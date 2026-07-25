@@ -39,18 +39,18 @@ class MountSupervisor:
     """Owns only the Plex TorBox rclone process and refuses foreign mounts."""
 
     def __init__(self):
-        self.data_dir = os.path.abspath(os.environ.get("VORTEXO_DATA_DIR", "/data/vortexo"))
+        self.data_dir = os.path.abspath(os.environ.get("TORBOX_DATA_DIR", "/data/torbox"))
         self.mountpoint = os.path.abspath(
-            os.environ.get("VORTEXO_MOUNTPOINT", "/downloads/.vortexo-source")
+            os.environ.get("TORBOX_MOUNTPOINT", "/downloads/.torbox-source")
         )
         self.host_mount_path = os.path.abspath(
-            os.environ.get("VORTEXO_HOST_MOUNT_PATH", "")
+            os.environ.get("TORBOX_HOST_MOUNT_PATH", "")
         )
         self.store = Store(self.data_dir)
         self.mount_dir = os.path.join(self.data_dir, "mount")
         self.config_path = os.path.join(self.mount_dir, "rclone.conf")
         self.log_path = os.path.join(self.mount_dir, "rclone.log")
-        self.owner_marker = os.path.join(self.mount_dir, "owned-by-plex-vortexo")
+        self.owner_marker = os.path.join(self.mount_dir, "owned-by-plex-torbox")
         self.process: subprocess.Popen | None = None
         self.owned = False
         self.error = ""
@@ -59,7 +59,7 @@ class MountSupervisor:
         os.makedirs(self.mount_dir, mode=0o700, exist_ok=True)
 
     def validate_storage(self):
-        if self.mountpoint != "/downloads/.vortexo-source":
+        if self.mountpoint != "/downloads/.torbox-source":
             raise RuntimeError(f"Refusing unexpected mount path {self.mountpoint}")
         if not self.host_mount_path:
             raise RuntimeError("Host mount path is missing")
@@ -247,7 +247,7 @@ class MountSupervisor:
 
 class MountHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "PlexVortexoMount/0.1"
+    server_version = "PlexTorBoxMount/0.1"
 
     @property
     def supervisor(self) -> MountSupervisor:
@@ -284,9 +284,9 @@ class MountHandler(BaseHTTPRequestHandler):
 
 def serve():
     supervisor = MountSupervisor()
-    thread = threading.Thread(target=supervisor.start, name="vortexo-rclone-start", daemon=True)
+    thread = threading.Thread(target=supervisor.start, name="torbox-rclone-start", daemon=True)
     thread.start()
-    port = int(os.environ.get("VORTEXO_MOUNT_PORT", "32501"))
+    port = int(os.environ.get("TORBOX_MOUNT_PORT", "32501"))
     server = ThreadingHTTPServer(("127.0.0.1", port), MountHandler)
     server.daemon_threads = True
     server.supervisor = supervisor  # type: ignore[attr-defined]

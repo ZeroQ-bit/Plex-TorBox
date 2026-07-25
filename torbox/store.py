@@ -17,7 +17,7 @@ class Store:
         self.data_dir = os.path.abspath(data_dir)
         os.makedirs(self.data_dir, mode=0o700, exist_ok=True)
         os.chmod(self.data_dir, 0o700)
-        self.path = os.path.join(self.data_dir, "vortexo.db")
+        self.path = os.path.join(self.data_dir, "torbox.db")
         self._lock = threading.RLock()
         self._initialise()
 

@@ -65,24 +65,24 @@ def _json_bytes(value) -> bytes:
     return json.dumps(value, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-class VortexoService:
+class TorBoxService:
     def __init__(self):
-        self.data_dir = os.path.abspath(os.environ.get("VORTEXO_DATA_DIR", "/data/vortexo"))
+        self.data_dir = os.path.abspath(os.environ.get("TORBOX_DATA_DIR", "/data/torbox"))
         self.plex_preferences = os.environ.get(
-            "VORTEXO_PLEX_PREFERENCES",
+            "TORBOX_PLEX_PREFERENCES",
             "/plex-config/Library/Application Support/Plex Media Server/Preferences.xml",
         )
-        self.plex_base_url = os.environ.get("VORTEXO_PLEX_URL", "http://127.0.0.1:32400").rstrip("/")
+        self.plex_base_url = os.environ.get("TORBOX_PLEX_URL", "http://127.0.0.1:32400").rstrip("/")
         self.source_root = os.path.abspath(
-            os.environ.get("VORTEXO_SOURCE_ROOT", "/downloads/.vortexo-source")
+            os.environ.get("TORBOX_SOURCE_ROOT", "/downloads/.torbox-source")
         )
         self.movies_root = os.path.abspath(
-            os.environ.get("VORTEXO_MOVIES_ROOT", "/downloads/vortexo/Movies")
+            os.environ.get("TORBOX_MOVIES_ROOT", "/downloads/torbox/Movies")
         )
         self.tv_root = os.path.abspath(
-            os.environ.get("VORTEXO_TV_ROOT", "/downloads/vortexo/TV")
+            os.environ.get("TORBOX_TV_ROOT", "/downloads/torbox/TV")
         )
-        self.mount_api = os.environ.get("VORTEXO_MOUNT_API", "http://127.0.0.1:32501").rstrip("/")
+        self.mount_api = os.environ.get("TORBOX_MOUNT_API", "http://127.0.0.1:32501").rstrip("/")
         self.store = Store(self.data_dir)
         self._sessions: dict[str, float] = {}
         self._sessions_lock = threading.RLock()
@@ -98,12 +98,12 @@ class VortexoService:
         os.makedirs(self.transcode_root, mode=0o700, exist_ok=True)
         for job in self.store.resumable_jobs():
             self._start_library_job(job["id"])
-        if os.environ.get("VORTEXO_DISABLE_AUTOMATION", "").lower() not in {
+        if os.environ.get("TORBOX_DISABLE_AUTOMATION", "").lower() not in {
             "1", "true", "yes", "on",
         }:
             self._watchlist_thread = threading.Thread(
                 target=self._watchlist_loop,
-                name="vortexo-watchlist",
+                name="torbox-watchlist",
                 daemon=True,
             )
             self._watchlist_thread.start()
@@ -157,7 +157,7 @@ class VortexoService:
         mount = {"online": False, "detail": "Mount supervisor unavailable"}
         plex = {"online": False, "detail": "Plex owner session is not ready"}
         torbox = {"online": False, "detail": "TorBox is not configured"}
-        source_lookup = {"online": False, "detail": "Vortexo Sources is not configured"}
+        source_lookup = {"online": False, "detail": "TorBox Sources is not configured"}
         owner_token = self.owner_token
         if owner_token:
             try:
@@ -416,13 +416,13 @@ class VortexoService:
         try:
             settings = self.store.settings()
             if not settings.get("plex_watchlist_enabled", False):
-                raise IntegrationError("Enable Plex Watchlist automation in Vortexo settings")
+                raise IntegrationError("Enable Plex Watchlist automation in TorBox settings")
             if not settings.get("torbox_api_key") or not settings.get("stream_manifest_urls"):
-                raise IntegrationError("Connect TorBox and Vortexo Sources before Watchlist sync")
+                raise IntegrationError("Connect TorBox and TorBox Sources before Watchlist sync")
             limit = max(1, min(int(settings.get("plex_watchlist_max_items", 100)), 1000))
             items = fetch_plex_watchlist(self.owner_token, limit)
             counts["found"] = len(items)
-            retry_delay = int(os.environ.get("VORTEXO_WATCHLIST_RETRY_SECONDS", "900"))
+            retry_delay = int(os.environ.get("TORBOX_WATCHLIST_RETRY_SECONDS", "900"))
             now = int(time.time())
             for media in items:
                 identity = self._watchlist_identity(media)
@@ -588,7 +588,7 @@ class VortexoService:
         settings = self.store.settings()
         manifests = settings.get("stream_manifest_urls") or []
         if not manifests:
-            raise IntegrationError("Add a Vortexo Sources manifest URL first")
+            raise IntegrationError("Add a TorBox Sources manifest URL first")
         all_streams = []
         errors = []
         for manifest_url in manifests:
@@ -662,9 +662,9 @@ class VortexoService:
             "session_id": session_id,
             "mode": payload["mode"],
             "play_url": (
-                f"/vortexo/play/{session_id}/master.m3u8"
+                f"/torbox/play/{session_id}/master.m3u8"
                 if incompatible
-                else f"/vortexo/play/{session_id}/direct"
+                else f"/torbox/play/{session_id}/direct"
             ),
             "resume": self.store.progress(str(body.get("discover_id") or "")),
         }
@@ -815,7 +815,7 @@ class VortexoService:
             thread = threading.Thread(
                 target=self._run_library_job,
                 args=(job_id,),
-                name=f"vortexo-library-{job_id[:8]}",
+                name=f"torbox-library-{job_id[:8]}",
                 daemon=True,
             )
             self._job_threads[job_id] = thread
@@ -901,7 +901,7 @@ class VortexoService:
             if final and final.get("status") in TERMINAL_JOB_STATES:
                 retry_at = (
                     int(time.time())
-                    + int(os.environ.get("VORTEXO_WATCHLIST_RETRY_SECONDS", "900"))
+                    + int(os.environ.get("TORBOX_WATCHLIST_RETRY_SECONDS", "900"))
                     if final["status"] == "failed"
                     else 0
                 )
@@ -915,7 +915,7 @@ class VortexoService:
                 self._job_threads.pop(job_id, None)
 
     def _wait_for_torrent(self, client: TorBoxClient, stream: dict, job_id: str) -> dict:
-        deadline = time.time() + int(os.environ.get("VORTEXO_TORBOX_WAIT_SECONDS", "7200"))
+        deadline = time.time() + int(os.environ.get("TORBOX_WAIT_SECONDS", "7200"))
         while time.time() < deadline:
             torrent = client.find_torrent(
                 stream.get("info_hash", ""),
@@ -930,7 +930,7 @@ class VortexoService:
         raise IntegrationError("Timed out waiting for TorBox to finish the release")
 
     def _wait_for_mount_file(self, torrent_name: str, relative_path: str, job_id: str) -> str:
-        deadline = time.time() + int(os.environ.get("VORTEXO_MOUNT_WAIT_SECONDS", "1800"))
+        deadline = time.time() + int(os.environ.get("TORBOX_MOUNT_WAIT_SECONDS", "1800"))
         candidates = [
             os.path.join(self.source_root, torrent_name, relative_path),
             os.path.join(self.source_root, relative_path),
@@ -996,7 +996,7 @@ class VortexoService:
             raise IntegrationError("A different symlink already uses the target filename")
         if os.path.exists(link_path):
             raise IntegrationError("Refusing to replace an existing Plex file")
-        temporary = f"{link_path}.vortexo-{uuid.uuid4().hex}"
+        temporary = f"{link_path}.torbox-{uuid.uuid4().hex}"
         try:
             os.symlink(source_path, temporary)
             if not os.path.isfile(temporary):
@@ -1079,7 +1079,7 @@ class VortexoService:
         return False
 
     def _wait_for_plex(self, media: dict, link_path: str) -> str:
-        deadline = time.time() + int(os.environ.get("VORTEXO_PLEX_WAIT_SECONDS", "600"))
+        deadline = time.time() + int(os.environ.get("TORBOX_PLEX_WAIT_SECONDS", "600"))
         title = str(media.get("parent_title") or media.get("title") or "")
         wanted_imdb = str(media.get("imdb_id") or "").lower()
         wanted_tmdb = str(media.get("tmdb_id") or "")
@@ -1145,7 +1145,7 @@ class VortexoService:
             if process is None or process.poll() is not None:
                 shutil.rmtree(output_dir, ignore_errors=True)
                 os.makedirs(output_dir, mode=0o700)
-                source = f"http://127.0.0.1:32502/vortexo/play/{session_id}/source"
+                source = f"http://127.0.0.1:32502/torbox/play/{session_id}/source"
                 command = [
                     "ffmpeg", "-hide_banner", "-loglevel", "warning", "-nostdin",
                     "-i", source,
@@ -1170,12 +1170,12 @@ class VortexoService:
         raise IntegrationError("The browser-compatible stream could not be prepared")
 
 
-class VortexoHandler(BaseHTTPRequestHandler):
+class TorBoxHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "PlexVortexo/0.1"
+    server_version = "PlexTorBox/0.1"
 
     @property
-    def service(self) -> VortexoService:
+    def service(self) -> TorBoxService:
         return self.server.service  # type: ignore[attr-defined]
 
     def log_message(self, format, *args):
@@ -1208,7 +1208,7 @@ class VortexoHandler(BaseHTTPRequestHandler):
         return morsel.value if morsel else ""
 
     def _authorised(self) -> bool:
-        return self.service.valid_session(self._cookie("vortexo_session"))
+        return self.service.valid_session(self._cookie("torbox_session"))
 
     def _send_json(self, value, status: int = 200, headers: dict | None = None):
         body = _json_bytes(value)
@@ -1250,22 +1250,22 @@ class VortexoHandler(BaseHTTPRequestHandler):
             if path == "/health":
                 self._send_json({"online": True, "service": "gateway"})
                 return
-            if path == "/vortexo/api/session" and self.command == "PUT":
+            if path == "/torbox/api/session" and self.command == "PUT":
                 session_id = self.service.establish_session(str(self._body().get("plex_token") or ""))
                 self._send_json(
                     {"authenticated": True},
                     headers={
                         "Set-Cookie": (
-                            f"vortexo_session={session_id}; Path=/vortexo/; "
+                            f"torbox_session={session_id}; Path=/torbox/; "
                             "HttpOnly; SameSite=Strict; Max-Age=28800"
                         )
                     },
                 )
                 return
-            if path.startswith("/vortexo/play/"):
+            if path.startswith("/torbox/play/"):
                 self._handle_play(path)
                 return
-            if not path.startswith("/vortexo/api/"):
+            if not path.startswith("/torbox/api/"):
                 self._error(HTTPStatus.NOT_FOUND, "Not found")
                 return
             if not self._require_owner():
@@ -1280,13 +1280,13 @@ class VortexoHandler(BaseHTTPRequestHandler):
         except BrokenPipeError:
             return
         except Exception:
-            self._error(HTTPStatus.INTERNAL_SERVER_ERROR, "Vortexo request failed")
+            self._error(HTTPStatus.INTERNAL_SERVER_ERROR, "TorBox request failed")
 
     def _handle_api(self, path: str):
-        if path == "/vortexo/api/status" and self.command == "GET":
+        if path == "/torbox/api/status" and self.command == "GET":
             self._send_json(self.service.public_status())
             return
-        if path == "/vortexo/api/settings":
+        if path == "/torbox/api/settings":
             if self.command == "GET":
                 self._send_json(self.service.settings_public())
             elif self.command == "PUT":
@@ -1294,34 +1294,34 @@ class VortexoHandler(BaseHTTPRequestHandler):
             else:
                 self._error(HTTPStatus.METHOD_NOT_ALLOWED, "Method not allowed")
             return
-        if path == "/vortexo/api/watchlist" and self.command == "GET":
+        if path == "/torbox/api/watchlist" and self.command == "GET":
             self._send_json(self.service.watchlist_public())
             return
-        if path == "/vortexo/api/watchlist/sync" and self.command == "POST":
+        if path == "/torbox/api/watchlist/sync" and self.command == "POST":
             self._send_json(self.service.sync_watchlist())
             return
-        match = re.fullmatch(r"/vortexo/api/discover/([^/]+)", path)
+        match = re.fullmatch(r"/torbox/api/discover/([^/]+)", path)
         if match and self.command == "GET":
             self._send_json(self.service.media(match.group(1)))
             return
-        match = re.fullmatch(r"/vortexo/api/discover/([^/]+)/episodes", path)
+        match = re.fullmatch(r"/torbox/api/discover/([^/]+)/episodes", path)
         if match and self.command == "GET":
             self._send_json({"episodes": self.service.episodes(match.group(1))})
             return
-        if path == "/vortexo/api/streams" and self.command == "POST":
+        if path == "/torbox/api/streams" and self.command == "POST":
             self._send_json(self.service.streams(self._body()))
             return
-        if path == "/vortexo/api/play" and self.command == "POST":
+        if path == "/torbox/api/play" and self.command == "POST":
             self._send_json(self.service.create_play_session(self._body()))
             return
-        if path == "/vortexo/api/progress" and self.command == "POST":
+        if path == "/torbox/api/progress" and self.command == "POST":
             self._send_json(self.service.save_progress(self._body()))
             return
-        if path == "/vortexo/api/library-jobs" and self.command == "POST":
+        if path == "/torbox/api/library-jobs" and self.command == "POST":
             job, created = self.service.create_library_job(self._body())
             self._send_json({"job": job, "created": created}, HTTPStatus.ACCEPTED if created else 200)
             return
-        match = re.fullmatch(r"/vortexo/api/library-jobs/([a-f0-9]+)", path)
+        match = re.fullmatch(r"/torbox/api/library-jobs/([a-f0-9]+)", path)
         if match and self.command == "GET":
             job = self.service.store.job(match.group(1))
             if not job:
@@ -1333,7 +1333,7 @@ class VortexoHandler(BaseHTTPRequestHandler):
 
     def _handle_play(self, path: str):
         match = re.fullmatch(
-            r"/vortexo/play/([a-f0-9]+)/(direct|source|master\.m3u8|segment-\d+\.ts)",
+            r"/torbox/play/([a-f0-9]+)/(direct|source|master\.m3u8|segment-\d+\.ts)",
             path,
         )
         if not match:
@@ -1356,7 +1356,7 @@ class VortexoHandler(BaseHTTPRequestHandler):
 
     def _proxy_source(self, session: dict):
         headers = {
-            "User-Agent": "Plex-Vortexo/0.1",
+            "User-Agent": "Plex-TorBox/0.1",
             **{str(key): str(value) for key, value in (session.get("headers") or {}).items()},
         }
         if self.headers.get("Range"):
@@ -1402,12 +1402,12 @@ class VortexoHandler(BaseHTTPRequestHandler):
 
 
 def serve():
-    host = os.environ.get("VORTEXO_API_HOST", "127.0.0.1")
-    port = int(os.environ.get("VORTEXO_API_PORT", "32502"))
-    server = ThreadingHTTPServer((host, port), VortexoHandler)
+    host = os.environ.get("TORBOX_API_HOST", "127.0.0.1")
+    port = int(os.environ.get("TORBOX_API_PORT", "32502"))
+    server = ThreadingHTTPServer((host, port), TorBoxHandler)
     server.daemon_threads = True
-    server.service = VortexoService()  # type: ignore[attr-defined]
-    print(f"[gateway] Vortexo API listening on {host}:{port}", flush=True)
+    server.service = TorBoxService()  # type: ignore[attr-defined]
+    print(f"[gateway] TorBox API listening on {host}:{port}", flush=True)
     server.serve_forever()
 
 

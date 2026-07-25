@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from vortexo.integrations import IntegrationError
-from vortexo.service import VortexoService
+from torbox.integrations import IntegrationError
+from torbox.service import TorBoxService
 
 
 class ServiceTests(unittest.TestCase):
@@ -24,16 +24,16 @@ class ServiceTests(unittest.TestCase):
         self.environment = mock.patch.dict(
             os.environ,
             {
-                "VORTEXO_DATA_DIR": self.data,
-                "VORTEXO_SOURCE_ROOT": self.source,
-                "VORTEXO_MOVIES_ROOT": self.movies,
-                "VORTEXO_TV_ROOT": self.tv,
-                "VORTEXO_PLEX_PREFERENCES": self.preferences,
-                "VORTEXO_DISABLE_AUTOMATION": "1",
+                "TORBOX_DATA_DIR": self.data,
+                "TORBOX_SOURCE_ROOT": self.source,
+                "TORBOX_MOVIES_ROOT": self.movies,
+                "TORBOX_TV_ROOT": self.tv,
+                "TORBOX_PLEX_PREFERENCES": self.preferences,
+                "TORBOX_DISABLE_AUTOMATION": "1",
             },
         )
         self.environment.start()
-        self.service = VortexoService()
+        self.service = TorBoxService()
 
     def tearDown(self):
         self.environment.stop()
@@ -47,7 +47,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_owner_session_requires_exact_local_token(self):
         with mock.patch(
-            "vortexo.service.plex_account",
+            "torbox.service.plex_account",
             side_effect=[
                 {"id": "owner", "uuid": "", "email": ""},
                 {"id": "someone-else", "uuid": "", "email": ""},
@@ -60,7 +60,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_distinct_plex_web_token_is_accepted_for_same_owner_account(self):
         with mock.patch(
-            "vortexo.service.plex_account",
+            "torbox.service.plex_account",
             side_effect=[
                 {"id": "owner-account", "uuid": "", "email": ""},
                 {"id": "owner-account", "uuid": "", "email": ""},
@@ -135,7 +135,7 @@ class ServiceTests(unittest.TestCase):
             {"discover_id": "discover", "stream_id": public["id"]}
         )
         self.assertEqual(response["mode"], "direct")
-        self.assertTrue(response["play_url"].startswith("/vortexo/play/"))
+        self.assertTrue(response["play_url"].startswith("/torbox/play/"))
         self.assertNotIn("signed.example", str(response))
 
     def test_progress_marks_complete_at_ninety_percent(self):
@@ -151,7 +151,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_invalid_torbox_key_is_not_persisted(self):
         with mock.patch(
-            "vortexo.service.TorBoxClient.health",
+            "torbox.service.TorBoxClient.health",
             side_effect=IntegrationError("TorBox rejected the API key"),
         ):
             with self.assertRaisesRegex(IntegrationError, "rejected"):
@@ -177,10 +177,10 @@ class ServiceTests(unittest.TestCase):
         response.status = 200
         response.__enter__.return_value = response
         response.__exit__.return_value = False
-        with mock.patch("vortexo.service.json_request", side_effect=json_response):
+        with mock.patch("torbox.service.json_request", side_effect=json_response):
             with mock.patch("urllib.request.urlopen", return_value=response) as open_url:
                 with mock.patch(
-                    "vortexo.service.TorBoxClient.health",
+                    "torbox.service.TorBoxClient.health",
                     return_value={"online": True, "detail": "Connected"},
                 ):
                     status = self.service.public_status()
@@ -219,7 +219,7 @@ class ServiceTests(unittest.TestCase):
                                         "Part": [
                                             {
                                                 "file": (
-                                                    "/downloads/vortexo/TV/Show/Season 02/"
+                                                    "/downloads/torbox/TV/Show/Season 02/"
                                                     "Show - S02E04 - 4K.mkv"
                                                 )
                                             }
@@ -232,13 +232,13 @@ class ServiceTests(unittest.TestCase):
                 }
             raise AssertionError(url)
 
-        with mock.patch("vortexo.service.json_request", side_effect=response):
+        with mock.patch("torbox.service.json_request", side_effect=response):
             episode_key = self.service._episode_rating_key("show-key", 2, 4)
             self.assertEqual(episode_key, "episode-key")
             self.assertTrue(
                 self.service._plex_item_contains_file(
                     episode_key,
-                    "/downloads/vortexo/TV/Show/Season 02/Show - S02E04 - 4K.mkv",
+                    "/downloads/torbox/TV/Show/Season 02/Show - S02E04 - 4K.mkv",
                 )
             )
 
@@ -270,7 +270,7 @@ class ServiceTests(unittest.TestCase):
             "file_name": "Memento.2000.2160p.mkv",
         }
         with mock.patch(
-            "vortexo.service.fetch_plex_watchlist", return_value=[media]
+            "torbox.service.fetch_plex_watchlist", return_value=[media]
         ):
             with mock.patch.object(self.service, "_plex_has_media", return_value=False):
                 with mock.patch.object(
@@ -304,7 +304,7 @@ class ServiceTests(unittest.TestCase):
             "imdb_id": "tt0209144",
         }
         with mock.patch(
-            "vortexo.service.fetch_plex_watchlist", return_value=[media]
+            "torbox.service.fetch_plex_watchlist", return_value=[media]
         ):
             with mock.patch.object(self.service, "_plex_has_media", return_value=True):
                 with mock.patch.object(self.service, "_lookup_streams") as lookup:

@@ -5,10 +5,10 @@ APP_DIR="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")/..")"
 APP_DATA_DIR="${APP_DIR}/data"
 TARGET_CONFIG_DIR="${APP_DATA_DIR}/config"
 TARGET_TRANSCODE_DIR="${APP_DATA_DIR}/transcode"
-VORTEXO_DATA_DIR="${APP_DATA_DIR}/vortexo"
+TORBOX_DATA_DIR="${APP_DATA_DIR}/torbox"
 DOWNLOADS_DIR="${UMBREL_ROOT}/data/zeroq-media"
-VORTEXO_SOURCE_DIR="${DOWNLOADS_DIR}/.vortexo-source"
-VORTEXO_LIBRARY_DIR="${DOWNLOADS_DIR}/vortexo"
+TORBOX_SOURCE_DIR="${DOWNLOADS_DIR}/.torbox-source"
+TORBOX_LIBRARY_DIR="${DOWNLOADS_DIR}/torbox"
 
 if command -v sysctl >/dev/null 2>&1; then
   sysctl -w fs.inotify.max_user_watches=1048576 >/dev/null 2>&1 || true
@@ -16,8 +16,8 @@ if command -v sysctl >/dev/null 2>&1; then
   sysctl -w fs.inotify.max_queued_events=32768 >/dev/null 2>&1 || true
 fi
 
-mkdir -p "${TARGET_CONFIG_DIR}" "${TARGET_TRANSCODE_DIR}" "${VORTEXO_DATA_DIR}" \
-  "${VORTEXO_SOURCE_DIR}" "${VORTEXO_LIBRARY_DIR}/Movies" "${VORTEXO_LIBRARY_DIR}/TV"
+mkdir -p "${TARGET_CONFIG_DIR}" "${TARGET_TRANSCODE_DIR}" "${TORBOX_DATA_DIR}" \
+  "${TORBOX_SOURCE_DIR}" "${TORBOX_LIBRARY_DIR}/Movies" "${TORBOX_LIBRARY_DIR}/TV"
 
 if ! mountpoint -q "${DOWNLOADS_DIR}"; then
   mount --bind "${DOWNLOADS_DIR}" "${DOWNLOADS_DIR}"
@@ -27,21 +27,21 @@ if [[ "${propagation}" != "shared" && "${propagation}" != "rshared" ]]; then
   mount --make-rshared "${DOWNLOADS_DIR}"
 fi
 
-if mountpoint -q "${VORTEXO_SOURCE_DIR}"; then
-  source_type="$(findmnt -T "${VORTEXO_SOURCE_DIR}" -o FSTYPE -n 2>/dev/null || true)"
-  echo "Plex (TorBox) will not start: ${VORTEXO_SOURCE_DIR} is already mounted (${source_type:-unknown})." >&2
+if mountpoint -q "${TORBOX_SOURCE_DIR}"; then
+  source_type="$(findmnt -T "${TORBOX_SOURCE_DIR}" -o FSTYPE -n 2>/dev/null || true)"
+  echo "Plex (TorBox) will not start: ${TORBOX_SOURCE_DIR} is already mounted (${source_type:-unknown})." >&2
   echo "Stop Orbit or the current mount owner, confirm it released the path, then start Plex (TorBox) again." >&2
   exit 1
 fi
 
-if find "${VORTEXO_SOURCE_DIR}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
-  echo "Plex (TorBox) will not hide local files found in ${VORTEXO_SOURCE_DIR}." >&2
+if find "${TORBOX_SOURCE_DIR}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
+  echo "Plex (TorBox) will not hide local files found in ${TORBOX_SOURCE_DIR}." >&2
   exit 1
 fi
 
-chown -R 1000:1000 "${TARGET_CONFIG_DIR}" "${TARGET_TRANSCODE_DIR}" "${VORTEXO_DATA_DIR}"
-chmod 0700 "${VORTEXO_DATA_DIR}"
-chown 1000:1000 "${DOWNLOADS_DIR}" "${VORTEXO_LIBRARY_DIR}" \
-  "${VORTEXO_LIBRARY_DIR}/Movies" "${VORTEXO_LIBRARY_DIR}/TV"
-chmod 0775 "${DOWNLOADS_DIR}" "${VORTEXO_LIBRARY_DIR}" \
-  "${VORTEXO_LIBRARY_DIR}/Movies" "${VORTEXO_LIBRARY_DIR}/TV"
+chown -R 1000:1000 "${TARGET_CONFIG_DIR}" "${TARGET_TRANSCODE_DIR}" "${TORBOX_DATA_DIR}"
+chmod 0700 "${TORBOX_DATA_DIR}"
+chown 1000:1000 "${DOWNLOADS_DIR}" "${TORBOX_LIBRARY_DIR}" \
+  "${TORBOX_LIBRARY_DIR}/Movies" "${TORBOX_LIBRARY_DIR}/TV"
+chmod 0775 "${DOWNLOADS_DIR}" "${TORBOX_LIBRARY_DIR}" \
+  "${TORBOX_LIBRARY_DIR}/Movies" "${TORBOX_LIBRARY_DIR}/TV"

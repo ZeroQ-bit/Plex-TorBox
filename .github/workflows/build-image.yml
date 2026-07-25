@@ -9,7 +9,7 @@ on:
       - "entrypoint.sh"
       - "nginx.conf"
       - "pyproject.toml"
-      - "vortexo/**"
+      - "torbox/**"
       - "web/**"
       - "tests/**"
       - ".github/workflows/build-image.yml"
@@ -21,7 +21,7 @@ on:
       - "entrypoint.sh"
       - "nginx.conf"
       - "pyproject.toml"
-      - "vortexo/**"
+      - "torbox/**"
       - "web/**"
       - "tests/**"
       - ".github/workflows/build-image.yml"
@@ -46,8 +46,8 @@ jobs:
       - name: Test Plex TorBox
         run: |
           python3 -m unittest discover -s tests -v
-          python3 -m compileall -q vortexo
-          node --check web/plex-vortexo.js
+          python3 -m compileall -q torbox
+          node --check web/plex-torbox.js
           sh -n entrypoint.sh
 
       - name: Set up QEMU
